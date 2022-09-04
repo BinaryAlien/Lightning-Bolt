@@ -28,7 +28,12 @@ def duration_to_str(duration):
     return f'{hours}h{minutes:02}'
 
 def get_rooms(event):
-    return event.location.split(', ')
+    location = event.location.strip()
+    if location:
+        rooms = location.split(', ')
+    else:
+        rooms = []
+    return rooms
 
 def event_to_embed(event):
     embed = Embed(title=event.begin.astimezone(TIMEZONE).strftime('%H:%M'), description=event.name)

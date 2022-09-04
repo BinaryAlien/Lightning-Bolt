@@ -41,6 +41,8 @@ def event_to_embed(event):
     embed.add_field(name='Fin', value=event.end.astimezone(TIMEZONE).strftime('%H:%M'))
     for room in get_rooms(event):
         embed.add_field(name='Salle', value=room, inline=False)
+    if event.url:
+        embed.url = event.url
     return embed
 
 def get_groups_filename():

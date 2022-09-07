@@ -2,6 +2,7 @@
 
 from discord import Embed, Webhook
 from ics import Calendar
+from urllib.parse import urlparse, urlunparse
 import asyncio
 import aiohttp
 import datetime
@@ -35,6 +36,14 @@ def get_rooms(event):
         rooms = []
     return rooms
 
+def sanitize_url(url):
+    url_parts = urlparse(url)
+    if not url_parts.netloc:
+        return sanitize_url('//' + url)
+    if not url_parts.scheme:
+        url_parts = url_parts._replace(scheme='https')
+    return urlunparse(url_parts)
+
 def event_to_embed(event):
     embed = Embed(title=event.begin.astimezone(TIMEZONE).strftime('%H:%M'), description=event.name)
     embed.add_field(name='Durée', value=duration_to_str(event.duration))
@@ -42,7 +51,7 @@ def event_to_embed(event):
     for room in get_rooms(event):
         embed.add_field(name='Salle', value=room, inline=False)
     if event.url:
-        embed.url = event.url
+        embed.url = sanitize_url(event.url)
     return embed
 
 def get_groups_filename():

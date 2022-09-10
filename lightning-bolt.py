@@ -26,7 +26,11 @@ async def get_events(url, session, day=None):
 def duration_to_str(duration):
     seconds = round(duration.total_seconds())
     hours, minutes = (seconds // 3600, seconds // 60 % 60)
-    return f'{hours}h{minutes:02}'
+    if hours > 0:
+        duration_str = f'{hours}h{minutes:02}'
+    else:
+        duration_str = f'{minutes} min'
+    return duration_str
 
 def get_rooms(event):
     location = event.location.strip()

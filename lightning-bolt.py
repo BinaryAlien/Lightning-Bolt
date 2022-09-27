@@ -11,6 +11,8 @@ import sys
 
 TIMEZONE = datetime.timezone(datetime.timedelta(hours=2), name='CEST')
 
+EMBEDS_PER_MESSAGE = 10
+
 async def get_calendar(url, session):
     async with session.get(url) as response:
         return Calendar(await response.text())
@@ -62,6 +64,11 @@ def load_groups(filename):
     with open(filename) as file:
         return json.load(file)
 
+async def send_embeds(webhook, embeds):
+    for i in range(0, len(embeds), EMBEDS_PER_MESSAGE):
+        embeds_chunk = embeds[i:i + EMBEDS_PER_MESSAGE]
+        await webhook.send(embeds=embeds_chunk)
+
 async def publish_events_for(group, session, day=None):
     events = await get_events(group['ics'], session, day or datetime.date.today())
     if not events:
@@ -70,7 +77,7 @@ async def publish_events_for(group, session, day=None):
     webhooks = map(lambda webhook_url: Webhook.from_url(webhook_url, session=session), group['webhooks'])
     tasks = set()
     for webhook in webhooks:
-        task = asyncio.create_task(webhook.send(embeds=embeds))
+        task = asyncio.create_task(send_embeds(webhook, embeds))
         task.add_done_callback(tasks.discard)
         tasks.add(task)
     await asyncio.gather(*tasks)

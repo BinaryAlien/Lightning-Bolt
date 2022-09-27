@@ -58,9 +58,6 @@ def event_to_embed(event):
         embed.url = sanitize_url(event.url)
     return embed
 
-def get_groups_filename():
-    return filename
-
 def load_groups(filename):
     with open(filename) as file:
         return json.load(file)

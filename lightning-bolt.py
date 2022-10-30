@@ -2,6 +2,7 @@
 
 from discord import Embed, Webhook
 from ics import Calendar
+from pytz import timezone
 from urllib.parse import urlparse, urlunparse
 import asyncio
 import aiohttp
@@ -9,7 +10,7 @@ import datetime
 import json
 import sys
 
-TIMEZONE = datetime.timezone(datetime.timedelta(hours=2), name='CEST')
+TIMEZONE = 'Europe/Paris'
 
 EMBEDS_PER_MESSAGE = 10
 
@@ -51,9 +52,10 @@ def sanitize_url(url):
     return urlunparse(url_parts)
 
 def event_to_embed(event):
-    embed = Embed(title=event.begin.astimezone(TIMEZONE).strftime('%H:%M'), description=event.name)
+    tz = timezone(TIMEZONE)
+    embed = Embed(title=event.begin.astimezone(tz).strftime('%H:%M'), description=event.name)
     embed.add_field(name='Durée', value=duration_to_str(event.duration))
-    embed.add_field(name='Fin', value=event.end.astimezone(TIMEZONE).strftime('%H:%M'))
+    embed.add_field(name='Fin', value=event.end.astimezone(tz).strftime('%H:%M'))
     for room in get_rooms(event):
         embed.add_field(name='Salle', value=room, inline=False)
     if event.url:

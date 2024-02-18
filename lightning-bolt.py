@@ -4,8 +4,8 @@ from discord import Embed, Object, Webhook
 from ics import Calendar
 from pytz import timezone
 from urllib.parse import parse_qs, urlparse, urlunparse
-import asyncio
 import aiohttp
+import asyncio
 import datetime
 import os
 import sys
@@ -18,14 +18,6 @@ EMBEDS_PER_MESSAGE = 10
 async def get_calendar(url, session):
     async with session.get(url) as response:
         return Calendar(await response.text())
-
-async def get_events(url, session, day=None):
-    calendar = await get_calendar(url, session)
-    if day is not None:
-        events = filter(lambda event: event.begin.date() == day, calendar.events)
-    else:
-        events = calendar.events
-    return sorted(events, key=lambda event: event.begin)
 
 def duration_to_str(duration):
     seconds = round(duration.total_seconds())
@@ -52,17 +44,6 @@ def sanitize_url(url):
         url_parts = url_parts._replace(scheme='https')
     return urlunparse(url_parts)
 
-def event_to_embed(event):
-    tz = timezone(TIMEZONE)
-    embed = Embed(title=event.begin.astimezone(tz).strftime('%H:%M'), description=event.name)
-    embed.add_field(name='Durée', value=duration_to_str(event.duration))
-    embed.add_field(name='Fin', value=event.end.astimezone(tz).strftime('%H:%M'))
-    for room in get_rooms(event):
-        embed.add_field(name='Salle', value=room, inline=False)
-    if event.url:
-        embed.url = sanitize_url(event.url)
-    return embed
-
 def parse_thread(webhook_url):
     thread = None
     webhook_url = urlparse(webhook_url)
@@ -73,9 +54,25 @@ def parse_thread(webhook_url):
         thread = Object(thread_id)
     return thread
 
-def load_groups(filename):
-    with open(filename) as file:
-        return yaml.safe_load(file)
+
+async def get_events(url, session, day=None):
+    calendar = await get_calendar(url, session)
+    if day is not None:
+        events = filter(lambda event: event.begin.date() == day, calendar.events)
+    else:
+        events = calendar.events
+    return sorted(events, key=lambda event: event.begin)
+
+def event_to_embed(event):
+    tz = timezone(TIMEZONE)
+    embed = Embed(title=event.begin.astimezone(tz).strftime('%H:%M'), description=event.name)
+    embed.add_field(name='Durée', value=duration_to_str(event.duration))
+    embed.add_field(name='Fin', value=event.end.astimezone(tz).strftime('%H:%M'))
+    for room in get_rooms(event):
+        embed.add_field(name='Salle', value=room, inline=False)
+    if event.url:
+        embed.url = sanitize_url(event.url)
+    return embed
 
 async def send_embeds(webhook_url, session, embeds):
     webhook = Webhook.from_url(webhook_url, session=session)
@@ -88,6 +85,11 @@ async def send_embeds(webhook_url, session, embeds):
         embeds_chunk = embeds[i:i + EMBEDS_PER_MESSAGE]
         await webhook_send(embeds=embeds_chunk)
 
+
+def load_groups(filename):
+    with open(filename) as file:
+        return yaml.safe_load(file)
+
 async def publish_events_for(group, session, day=None):
     events = await get_events(group['ics'], session, day or datetime.date.today())
     if not events:
@@ -99,6 +101,7 @@ async def publish_events_for(group, session, day=None):
         task.add_done_callback(tasks.discard)
         tasks.add(task)
     await asyncio.gather(*tasks)
+
 
 async def main():
     if len(sys.argv) == 2:

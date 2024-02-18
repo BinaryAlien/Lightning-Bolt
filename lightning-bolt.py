@@ -7,10 +7,11 @@ from urllib.parse import parse_qs, urlparse, urlunparse
 import asyncio
 import aiohttp
 import datetime
+import os
 import sys
 import yaml
 
-TIMEZONE = 'Europe/Paris'
+TIMEZONE = os.getenv('LIGHTNING_BOLT_TZ', 'Europe/Paris')
 
 EMBEDS_PER_MESSAGE = 10
 

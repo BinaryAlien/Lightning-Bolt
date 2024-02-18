@@ -1,0 +1,3 @@
+- ics: 'https://zeus.ionis-it.com/api/group/XXX/ics/XXXXXXXXXX'
+  webhooks:
+    - 'https://discord.com/api/webhooks/XXXXXXXXXXXXXXXXXX/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'

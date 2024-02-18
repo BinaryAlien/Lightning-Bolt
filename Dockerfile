@@ -6,4 +6,4 @@ COPY lightning-bolt.py requirements.txt ./
 RUN pip3 install -r requirements.txt
 
 ENTRYPOINT ["python3", "./lightning-bolt.py"]
-CMD ["/etc/lightning-bolt/groups.json"]
+CMD ["/etc/lightning-bolt/groups.yml"]

@@ -7,8 +7,8 @@ from urllib.parse import urlparse, urlunparse
 import asyncio
 import aiohttp
 import datetime
-import json
 import sys
+import yaml
 
 TIMEZONE = 'Europe/Paris'
 
@@ -64,7 +64,7 @@ def event_to_embed(event):
 
 def load_groups(filename):
     with open(filename) as file:
-        return json.load(file)
+        return yaml.safe_load(file)
 
 async def send_embeds(webhook, embeds):
     for i in range(0, len(embeds), EMBEDS_PER_MESSAGE):
@@ -88,7 +88,7 @@ async def main():
     if len(sys.argv) == 2:
         groups_filename = sys.argv[1]
     else:
-        groups_filename = 'groups.json'
+        groups_filename = 'groups.yml'
     groups = load_groups(groups_filename)
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
     async with aiohttp.ClientSession() as session:

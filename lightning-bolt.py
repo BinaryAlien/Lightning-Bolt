@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from discord import Embed, Webhook
+from discord import Embed, Object, Webhook
 from ics import Calendar
 from pytz import timezone
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import parse_qs, urlparse, urlunparse
 import asyncio
 import aiohttp
 import datetime
@@ -62,24 +62,39 @@ def event_to_embed(event):
         embed.url = sanitize_url(event.url)
     return embed
 
+def parse_thread(webhook_url):
+    thread = None
+    webhook_url = urlparse(webhook_url)
+    webhook_query = parse_qs(webhook_url.query)
+    thread_id = webhook_query.get('thread_id')
+    if thread_id:
+        thread_id = thread_id[-1]
+        thread = Object(thread_id)
+    return thread
+
 def load_groups(filename):
     with open(filename) as file:
         return yaml.safe_load(file)
 
-async def send_embeds(webhook, embeds):
+async def send_embeds(webhook_url, session, embeds):
+    webhook = Webhook.from_url(webhook_url, session=session)
+    thread = parse_thread(webhook_url)
+    if thread:
+        webhook_send = lambda embeds: webhook.send(embeds=embeds, thread=thread)
+    else:
+        webhook_send = lambda embeds: webhook.send(embeds=embeds)
     for i in range(0, len(embeds), EMBEDS_PER_MESSAGE):
         embeds_chunk = embeds[i:i + EMBEDS_PER_MESSAGE]
-        await webhook.send(embeds=embeds_chunk)
+        await webhook_send(embeds=embeds_chunk)
 
 async def publish_events_for(group, session, day=None):
     events = await get_events(group['ics'], session, day or datetime.date.today())
     if not events:
         return
     embeds = list(map(event_to_embed, events))
-    webhooks = map(lambda webhook_url: Webhook.from_url(webhook_url, session=session), group['webhooks'])
     tasks = set()
-    for webhook in webhooks:
-        task = asyncio.create_task(send_embeds(webhook, embeds))
+    for webhook_url in group['webhooks']:
+        task = asyncio.create_task(send_embeds(webhook_url, session, embeds))
         task.add_done_callback(tasks.discard)
         tasks.add(task)
     await asyncio.gather(*tasks)

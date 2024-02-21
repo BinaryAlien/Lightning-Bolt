@@ -54,6 +54,15 @@ def parse_thread(webhook_url):
         thread = Object(thread_id)
     return thread
 
+def split_embeds(embeds):
+    assert len(embeds) > 0, "should not be empty"
+    chunk = [embeds[0]]
+    for embed in embeds[1:]:
+        if len(chunk) == EMBEDS_PER_MESSAGE or any(embed.url == other.url for other in chunk if other.url):
+            yield chunk
+            chunk.clear()
+        chunk.append(embed)
+    yield chunk
 
 async def get_events(url, session, day=None):
     calendar = await get_calendar(url, session)
@@ -81,8 +90,7 @@ async def send_embeds(webhook_url, session, embeds):
         webhook_send = lambda embeds: webhook.send(embeds=embeds, thread=thread)
     else:
         webhook_send = lambda embeds: webhook.send(embeds=embeds)
-    for i in range(0, len(embeds), EMBEDS_PER_MESSAGE):
-        embeds_chunk = embeds[i:i + EMBEDS_PER_MESSAGE]
+    for embeds_chunk in split_embeds(embeds):
         await webhook_send(embeds=embeds_chunk)
 
 

@@ -42,6 +42,9 @@ def sanitize_url(url):
         return sanitize_url('//' + url)
     if not url_parts.scheme:
         url_parts = url_parts._replace(scheme='https')
+    # Imitating front end behavior
+    if '.' not in url_parts.netloc:
+        url_parts = url_parts._replace(netloc='zeus.ionis-it.com', path=url_parts.netloc)
     return urlunparse(url_parts)
 
 def parse_thread(webhook_url):

@@ -3,7 +3,7 @@
 from discord import Embed, Object, Webhook
 from ics import Calendar
 from pytz import timezone
-from urllib.parse import parse_qs, urlparse, urlunparse
+from urllib.parse import parse_qs, quote, urlparse, urlunparse
 import aiohttp
 import asyncio
 import datetime
@@ -44,7 +44,7 @@ def sanitize_url(url):
         url_parts = url_parts._replace(scheme='https')
     # Imitating front end behavior
     if '.' not in url_parts.netloc:
-        url_parts = url_parts._replace(netloc='zeus.ionis-it.com', path=url_parts.netloc)
+        url_parts = url_parts._replace(netloc='zeus.ionis-it.com', path=quote(url_parts.netloc))
     return urlunparse(url_parts)
 
 def parse_thread(webhook_url):

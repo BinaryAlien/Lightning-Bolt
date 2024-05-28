@@ -3,7 +3,7 @@
 from discord import Embed, Object, Webhook
 from ics import Calendar
 from pytz import timezone
-from urllib.parse import parse_qs, quote, urlparse, urlunparse
+from urllib.parse import parse_qs, urlparse
 import aiohttp
 import asyncio
 import datetime
@@ -36,16 +36,9 @@ def get_rooms(event):
         rooms = []
     return rooms
 
-def sanitize_url(url):
+def is_valid_url(url):
     url_parts = urlparse(url)
-    if not url_parts.netloc:
-        return sanitize_url('//' + url)
-    if not url_parts.scheme:
-        url_parts = url_parts._replace(scheme='https')
-    # Imitating front end behavior
-    if '.' not in url_parts.netloc:
-        url_parts = url_parts._replace(netloc='zeus.ionis-it.com', path=quote(url_parts.netloc))
-    return urlunparse(url_parts)
+    return url_parts.scheme and url_parts.netloc
 
 def parse_thread(webhook_url):
     thread = None
@@ -82,8 +75,8 @@ def event_to_embed(event):
     embed.add_field(name='Fin', value=event.end.astimezone(tz).strftime('%H:%M'))
     for room in get_rooms(event):
         embed.add_field(name='Salle', value=room, inline=False)
-    if event.url:
-        embed.url = sanitize_url(event.url)
+    if event.url and is_valid_url(event.url):
+        embed.url = event.url
     return embed
 
 async def send_embeds(webhook_url, session, embeds):

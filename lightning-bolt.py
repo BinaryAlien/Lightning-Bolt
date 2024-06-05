@@ -38,7 +38,7 @@ def get_rooms(event):
 
 def is_valid_url(url):
     url_parts = urlparse(url)
-    return url_parts.scheme and url_parts.netloc
+    return bool(url_parts.scheme) and bool(url_parts.netloc)
 
 def parse_thread(webhook_url):
     thread = None

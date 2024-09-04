@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
-from discord import Embed, Object, Webhook
+from discord import Colour, Embed, Object, Webhook
 from ics import Calendar
 from pytz import timezone
 from urllib.parse import parse_qs, urlparse
 import aiohttp
 import asyncio
 import datetime
+import hashlib
 import os
 import sys
 import yaml
@@ -27,6 +28,11 @@ def duration_to_str(duration):
     else:
         duration_str = f'{minutes} min'
     return duration_str
+
+def hash_colour(string):
+    hash = hashlib.sha1(string.encode())
+    hash = int.from_bytes(hash.digest(), byteorder="big", signed=False)
+    return Colour(hash % 256 ** 3)
 
 def get_rooms(event):
     location = event.location.strip()
@@ -70,7 +76,11 @@ async def get_events(url, session, day=None):
 
 def event_to_embed(event):
     tz = timezone(TIMEZONE)
-    embed = Embed(title=event.begin.astimezone(tz).strftime('%H:%M'), description=event.name)
+    embed = Embed(
+        title=event.begin.astimezone(tz).strftime('%H:%M'),
+        description=event.name,
+        colour=hash_colour(event.name),
+    )
     embed.add_field(name='Durée', value=duration_to_str(event.duration))
     embed.add_field(name='Fin', value=event.end.astimezone(tz).strftime('%H:%M'))
     for room in get_rooms(event):

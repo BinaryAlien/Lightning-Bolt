@@ -12,59 +12,69 @@ import os
 import sys
 import yaml
 
-TIMEZONE = os.getenv('LIGHTNING_BOLT_TZ', 'Europe/Paris')
+TIMEZONE = os.getenv("LIGHTNING_BOLT_TZ", "Europe/Paris")
 
 EMBEDS_PER_MESSAGE = 10
+
 
 async def get_calendar(url, session):
     async with session.get(url) as response:
         return Calendar(await response.text())
 
+
 def duration_to_str(duration):
     seconds = round(duration.total_seconds())
     hours, minutes = (seconds // 3600, seconds // 60 % 60)
     if hours > 0:
-        duration_str = f'{hours}h{minutes:02}'
+        duration_str = f"{hours}h{minutes:02}"
     else:
-        duration_str = f'{minutes} min'
+        duration_str = f"{minutes} min"
     return duration_str
+
 
 def hash_colour(string):
     hash = hashlib.sha1(string.encode())
     hash = int.from_bytes(hash.digest(), byteorder="big", signed=False)
-    return Colour(hash % 256 ** 3)
+    return Colour(hash % 256**3)
+
 
 def get_rooms(event):
     location = event.location.strip()
     if location:
-        rooms = location.split(', ')
+        rooms = location.split(", ")
     else:
         rooms = []
     return rooms
+
 
 def is_valid_url(url):
     url_parts = urlparse(url)
     return bool(url_parts.scheme) and bool(url_parts.netloc)
 
+
 def parse_thread(webhook_url):
     thread = None
     webhook_url = urlparse(webhook_url)
     webhook_query = parse_qs(webhook_url.query)
-    thread_id = webhook_query.get('thread_id')
+    thread_id = webhook_query.get("thread_id")
     if thread_id:
         thread_id = thread_id[-1]
         thread = Object(thread_id)
     return thread
 
+
 def split_embeds(embeds):
     assert len(embeds) > 0, "should not be empty"
     chunk = [embeds[0]]
     for embed in embeds[1:]:
-        if len(chunk) == EMBEDS_PER_MESSAGE or any(embed.url == other.url for other in chunk if other.url):
+        if len(chunk) == EMBEDS_PER_MESSAGE or any(
+            embed.url == other.url for other in chunk if other.url
+        ):
             yield chunk
             chunk.clear()
         chunk.append(embed)
     yield chunk
+
 
 async def get_events(url, session, day=None):
     calendar = await get_calendar(url, session)
@@ -74,20 +84,22 @@ async def get_events(url, session, day=None):
         events = calendar.events
     return sorted(events, key=lambda event: event.begin)
 
+
 def event_to_embed(event):
     tz = timezone(TIMEZONE)
     embed = Embed(
-        title=event.begin.astimezone(tz).strftime('%H:%M'),
+        title=event.begin.astimezone(tz).strftime("%H:%M"),
         description=event.name,
         colour=hash_colour(event.name),
     )
-    embed.add_field(name='Durée', value=duration_to_str(event.duration))
-    embed.add_field(name='Fin', value=event.end.astimezone(tz).strftime('%H:%M'))
+    embed.add_field(name="Durée", value=duration_to_str(event.duration))
+    embed.add_field(name="Fin", value=event.end.astimezone(tz).strftime("%H:%M"))
     for room in get_rooms(event):
-        embed.add_field(name='Salle', value=room, inline=False)
+        embed.add_field(name="Salle", value=room, inline=False)
     if event.url and is_valid_url(event.url):
         embed.url = event.url
     return embed
+
 
 async def send_embeds(webhook_url, session, embeds):
     webhook = Webhook.from_url(webhook_url, session=session)
@@ -104,13 +116,14 @@ def load_groups(filename):
     with open(filename) as file:
         return yaml.safe_load(file)
 
+
 async def publish_events_for(group, session, day=None):
-    events = await get_events(group['ics'], session, day or datetime.date.today())
+    events = await get_events(group["ics"], session, day or datetime.date.today())
     if not events:
         return
     embeds = list(map(event_to_embed, events))
     tasks = set()
-    for webhook_url in group['webhooks']:
+    for webhook_url in group["webhooks"]:
         task = asyncio.create_task(send_embeds(webhook_url, session, embeds))
         task.add_done_callback(tasks.discard)
         tasks.add(task)
@@ -121,7 +134,7 @@ async def main():
     if len(sys.argv) == 2:
         groups_filename = sys.argv[1]
     else:
-        groups_filename = 'groups.yml'
+        groups_filename = "groups.yml"
     groups = load_groups(groups_filename)
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
     async with aiohttp.ClientSession() as session:
@@ -132,5 +145,6 @@ async def main():
             tasks.add(task)
         await asyncio.gather(*tasks)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(main())
